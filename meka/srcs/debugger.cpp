@@ -1304,6 +1304,11 @@ bool    Debugger_Symbols_TryParseLine(const char* line_original, t_debugger_symb
             //  "0000:c007 VarScanlineMetrics"
             if (sscanf(line, "%X:%X %s", &bank, &addr32, name) == 3)
             {
+                if (strncmp(name, "_sizeof_", 8) == 0)
+                {
+                    // Skip _sizeof_ labels
+                    return true;
+                }
                 Debugger_Symbol_Add(addr32 & 0xFFFF, bank, name);
                 return true;
             }
