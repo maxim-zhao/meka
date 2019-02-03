@@ -33,6 +33,8 @@
 
 t_debugger      Debugger;
 
+int file_section = 0; // Used for symbool file formats with sections to track where we are
+
 //-----------------------------------------------------------------------------
 // External declaration
 //-----------------------------------------------------------------------------
@@ -1301,20 +1303,75 @@ bool    Debugger_Symbols_TryParseLine(const char* line_original, t_debugger_symb
     case DEBUGGER_SYMBOL_FILE_TYPE_WLA:
         {
             // NO$GMB/WLA format
-            //  "0000:c007 VarScanlineMetrics"
-            if (sscanf(line, "%X:%X %s", &bank, &addr32, name) == 3)
+            // NO$GMB is just a list of:
+            //      0000:c007 VarScanlineMetrics
+            // WLA DX adds sections:
+            //      [symbols]
+            //      0000:c007 VarScanlineMetrics
+            //      [definitions]
+            //      0000004f TestCodeSize
+            if (sscanf(line, "[%s]", name) == 1)
             {
-                if (strncmp(name, "_sizeof_", 8) == 0)
+                if (strcmp(name, "labels") == 0)
                 {
-                    // Skip _sizeof_ labels
+                    file_section = 1;
                     return true;
                 }
-                Debugger_Symbol_Add(addr32 & 0xFFFF, bank, name);
-                return true;
+                if (strcmp(name, "definitions") == 0)
+                {
+                    file_section = 2;
+                    return true;
+                }
+                if (strcmp(name, "source files") == 0)
+                {
+                    // TODO
+                    file_section = -1;
+                    return true;
+                }
+                if (strcmp(name, "rom checksum") == 0)
+                {
+                    // TODO
+                    file_section = -1;
+                    return true;
+                }
+                if (strcmp(name, "addr-to-line mapping") == 0)
+                {
+                    // TODO
+                    file_section = -1;
+                    return true;
+                }
+                file_section = -1;
+                return false;
             }
-            if (sscanf(line, "%X %s", &addr32, name) == 2)
+
+            switch (file_section)
             {
-                Debugger_Symbol_Add(addr32 & 0xFFFF, -1, name);
+            case 0:
+                // NO$GMB
+                // Fall through
+            case 1:
+                // Symbols
+                if (sscanf(line, "%X:%X %s", &bank, &addr32, name) == 3)
+                {
+                    if (strncmp(name, "_sizeof_", 8) == 0)
+                    {
+                        // Skip _sizeof_ labels
+                        return true;
+                    }
+                    Debugger_Symbol_Add(addr32 & 0xFFFF, bank, name);
+                    return true;
+                }
+                break;
+            case 2:
+                // Definitions
+                if (sscanf(line, "%X %s", &addr32, name) == 2)
+                {
+                    Debugger_Symbol_Add(addr32 & 0xFFFF, -2, name);
+                    return true;
+                }
+                break;
+            default:
+                // Unhandled section, consume it
                 return true;
             }
             break;
@@ -1680,7 +1737,8 @@ t_debugger_symbol *     Debugger_Symbol_Add(u16 cpu_addr, int bank, const char *
 
     // Add to global symbol list and CPU space list
     list_add(&Debugger.symbols, symbol);
-    list_add_to_end(&Debugger.symbols_cpu_space[symbol->cpu_addr], symbol);
+    if (bank > -2)
+        list_add_to_end(&Debugger.symbols_cpu_space[symbol->cpu_addr], symbol);
 
     // Increase global counter
     Debugger.symbols_count++;
