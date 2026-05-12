@@ -27,8 +27,8 @@ struct t_psg_channel
 
 enum t_chip_type
 {
-    NOISE_MODE_SEGA,
-    NOISE_MODE_SN76489
+    CHIP_TYPE_SEGA_PSG,
+    CHIP_TYPE_SN76489
 };
 
 struct t_psg

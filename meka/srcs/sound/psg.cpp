@@ -66,7 +66,7 @@ int         PSG_Init()
 
     for (int i = 0; i < 4; i++)               // FIXME: to be done in sound.c ?
         PSG.Channels[i].Active = TRUE;
-    SN76489_Reset (Z80_DEFAULT_CPU_CLOCK, Sound.SampleRate, NOISE_MODE_SEGA);
+    SN76489_Reset (Z80_DEFAULT_CPU_CLOCK, Sound.SampleRate, CHIP_TYPE_SEGA_PSG);
 
     ConsolePrintf ("%s\n", Msg_Get(MSG_Ok));
     return (MEKA_ERR_OK);
@@ -506,7 +506,7 @@ void    SN76489_GetValues(int *result_left, int *result_right)
             int Feedback;
             if (PSG.Registers[6] & 0x04)  // White Noise
             {
-                if (PSG.ChipType == NOISE_MODE_SEGA)
+                if (PSG.ChipType == CHIP_TYPE_SEGA_PSG)
                     // SMS/GG PSG: mask is %1001
                     Feedback = ((PSG.NoiseShiftRegister >> 3) ^ (PSG.NoiseShiftRegister >> 0)) & 1; 
                 else
@@ -515,7 +515,7 @@ void    SN76489_GetValues(int *result_left, int *result_right)
             }
             else    // Periodic Noise
                 Feedback = PSG.NoiseShiftRegister & 1;    // For periodic: feedback=output
-            if (PSG.ChipType == NOISE_MODE_SEGA)
+            if (PSG.ChipType == CHIP_TYPE_SEGA_PSG)
                 // SMS/GG PSG: 16 bits
                 PSG.NoiseShiftRegister = (PSG.NoiseShiftRegister >> 1) | (Feedback << 15);
             else
