@@ -62,6 +62,8 @@ int             VGM_Start(t_vgm *VGM, const char *FileName, int Logging_Accuracy
 
     VGM->DataSize = 0;
     VGM->Cycles_Counter = 0;
+    VGM->Seconds = 0;
+    VGM->SamplesSinceLastSecond = 0;
     VGM_Update_Timing (VGM);
 
     // Initialize PSG State
@@ -148,17 +150,27 @@ void            VGM_NewFrame(t_vgm *VGM)
         {
             b = VGM_CMD_WAIT_735;
             VGM->vgm_header.total_samples += 735;
+            VGM->SamplesSinceLastSecond += 735;
         }
         else
         {
             b = VGM_CMD_WAIT_882;
             VGM->vgm_header.total_samples += 882;
+            VGM->SamplesSinceLastSecond += 882;
         }
         VGM_Data_Add_Byte(VGM, b);
     }
     else
     {
         VGM->Cycles_Counter += VGM->Cycles_per_Frame;
+        VGM->SamplesSinceLastSecond += VGM->Cycles_per_Frame;
+    }
+
+    if (VGM->SamplesSinceLastSecond >= 44100)
+    {
+        ++VGM->Seconds;
+        VGM->SamplesSinceLastSecond -= 44100;
+        Msg(MSGT_STATUS_BAR, Msg_Get(MSG_Sound_Dumping_VGM_Progress), VGM->Seconds / 60, VGM->Seconds % 60);
     }
 }
 
@@ -242,6 +254,14 @@ void            VGM_Data_Add_Wait(t_vgm *VGM, int Samples)
     *(word *)&buf[1] = Samples;
     fwrite (buf, 3, sizeof (byte), VGM->File);
     VGM->DataSize += 3;
+
+    VGM->SamplesSinceLastSecond += Samples;
+    if (VGM->SamplesSinceLastSecond >= 44100)
+    {
+        ++VGM->Seconds;
+        VGM->SamplesSinceLastSecond -= 44100;
+        Msg(MSGT_STATUS_BAR, Msg_Get(MSG_Sound_Dumping_VGM_Progress), VGM->Seconds / 60, VGM->Seconds % 60);
+    }
 }
 
 //-----------------------------------------------------------------------------
