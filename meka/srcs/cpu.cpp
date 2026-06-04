@@ -34,8 +34,6 @@ void Interrupt_Loop_Misc_Line_Zero()
 
 bool Interrupt_Loop_Misc_Common()
 {
-    if (Sound.LogVGM.Logging == VGM_LOGGING_ACCURACY_FRAME)
-        VGM_NewFrame(&Sound.LogVGM); // For frame accurate, we want to consolidate data at the VBlank point
     Sound_Update();
     tsms.Control_Check_GUI = TRUE;
     Inputs_Sources_Update(); // Poll input sources
@@ -131,7 +129,11 @@ word    Loop_SMS()
         // good result so far.
         // --------------------------------------------------------------------------
         if (tsms.VDP_Line == g_driver->y_int + 1)
+        {
             sms.VDP_Status |= VDP_STATUS_VBlank;
+            if (Sound.LogVGM.Logging == VGM_LOGGING_ACCURACY_FRAME)
+                VGM_NewFrame(&Sound.LogVGM); // For frame accurate, we want to consolidate data at the VBlank point
+        }
         else if (tsms.VDP_Line > g_driver->y_int && tsms.VDP_Line <= (g_driver->y_int + 32) && (sms.VDP_Status & VDP_STATUS_VBlank) && (VBlank_ON))
             interrupt = INT_IRQ;
         else if (tsms.VDP_Line == g_driver->y_int + 33)   // Interruption duration. Isn't that scary-lame?
