@@ -168,7 +168,11 @@ void            VGM_NewFrame(t_vgm *VGM)
     {
         ++VGM->Seconds;
         VGM->SamplesSinceLastSecond -= 44100;
+    }
+    if (g_gui_status.timeleft == 0)
+    {
         Msg(MSGT_STATUS_BAR, Msg_Get(MSG_Sound_Dumping_VGM_Progress), VGM->Seconds / 60, VGM->Seconds % 60);
+        g_gui_status.timeleft = 1;
     }
 }
 
